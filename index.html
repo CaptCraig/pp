@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Predator &amp; Prey · Capt. Craig's Workshop</title>
+<meta name="description" content="Grass, rabbits and foxes on a living field. Watch the populations boom and crash in turn, chart the cycles, and try your own settings.">
+<link rel="canonical" href="https://captcraig.net/pp/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Capt. Craig's Workshop">
+<meta property="og:title" content="Predator &amp; Prey">
+<meta property="og:description" content="Grass, rabbits and foxes on a living field: watch the boom-and-bust cycles.">
+<meta property="og:url" content="https://captcraig.net/pp/">
+<meta name="theme-color" content="#14273e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #14273e;
+    --navy-2: #1d3a5c;
+    --deep: #0e1d30;
+    --brass: #c9973f;
+    --cream: #e8d3a6;
+    --paper: #f4efe3;
+    --mist: #c8d4e0;
+    --grass: #7fae5a;
+    --rabbit: #efe2c4;
+    --fox: #e0703a;
+  }
+  * { box-sizing: border-box; }
+  html, body, button, select, a, label, input { touch-action: manipulation; }   /* no double-tap zoom */
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column;
+    background: var(--deep); color: #fff;
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Title bar ---------- */
+  .titlebar {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+    padding: calc(10px + env(safe-area-inset-top)) calc(110px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+    border-bottom: 2px solid var(--brass);
+  }
+  .titlebar h1 {
+    font-family: "Fraunces", Georgia, serif; font-weight: 800;
+    font-size: clamp(1.3rem, 3.6vw, 1.8rem); margin: 0; letter-spacing: .4px;
+  }
+  .titlebar h1 span { color: var(--brass); }
+  .about-btn {
+    background: none; border: 1px solid rgba(232,211,166,.5); color: var(--cream);
+    border-radius: 999px; padding: 2px 11px; font: 600 .85rem "Source Sans 3", system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .about-btn:hover { background: rgba(232,211,166,.12); }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    padding: 8px calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left));
+    background: var(--navy);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .group {
+    display: flex; align-items: center; gap: 6px; flex: none;
+    padding: 4px; border-radius: 11px;
+    background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.09);
+  }
+  .group > label { padding: 0 4px; }
+  .toolbar button, .toolbar select {
+    font: 600 .95rem "Source Sans 3", system-ui, sans-serif;
+    color: var(--paper); background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.18); border-radius: 8px;
+    padding: 6px 11px; cursor: pointer; min-height: 34px;
+  }
+  .toolbar button:hover, .toolbar select:hover { background: rgba(255,255,255,.14); }
+  .toolbar button.on { background: var(--brass); border-color: var(--brass); color: var(--deep); }
+  .toolbar button.primary { min-width: 84px; }
+  .toolbar select option { color: #111; background: #fff; }
+  .toolbar label { font-size: .9rem; color: var(--mist); display: flex; align-items: center; gap: 6px; }
+  .toolbar input[type=range] { width: 110px; accent-color: var(--brass); }
+  #speedLabel { min-width: 62px; font-variant-numeric: tabular-nums; color: var(--cream); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--rabbit); vertical-align: middle; }
+  .tri { display: inline-block; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--fox); vertical-align: middle; transform: rotate(90deg); }
+
+  /* settings drawer */
+  .settings {
+    display: none; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+    padding: 10px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
+    background: #11233a; border-bottom: 1px solid rgba(255,255,255,.08);
+    font-size: .92rem; color: var(--mist);
+  }
+  .settings.open { display: flex; }
+  .settings label { display: grid; grid-template-columns: auto 120px 44px; align-items: center; gap: 8px; }
+  .settings input[type=range] { width: 120px; accent-color: var(--brass); }
+  .settings output { color: var(--cream); font-variant-numeric: tabular-nums; }
+  .settings .hint { flex-basis: 100%; font-size: .84rem; color: #9fb0c2; margin-top: -2px; }
+
+  /* ---------- Chart band ---------- */
+  .band { position: relative; height: 112px; flex: none; background: #0b1828; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .band canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .legend {
+    position: absolute; left: calc(12px + env(safe-area-inset-left)); top: 6px;
+    display: flex; gap: 14px; font-size: .88rem; color: var(--mist); pointer-events: none;
+    background: rgba(11,24,40,.7); border-radius: 8px; padding: 2px 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .legend b { font-weight: 600; }
+  .legend .g b { color: #9fd17a; } .legend .r b { color: var(--rabbit); } .legend .f b { color: #f29a6a; }
+  .legend i { font-style: normal; display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+  /* ---------- Field ---------- */
+  .stage { position: relative; flex: 1; min-height: 0; }
+  #field { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #field.dropping { cursor: copy; }
+  .phase {
+    position: absolute; right: calc(12px + env(safe-area-inset-right)); top: 12px;
+    width: 168px; height: 168px; border-radius: 10px; overflow: hidden;
+    background: rgba(11,24,40,.84); border: 1px solid rgba(232,211,166,.35);
+    pointer-events: none;
+  }
+  .phase canvas { width: 100%; height: 100%; display: block; }
+  .stats {
+    position: absolute; left: calc(12px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom));
+    background: rgba(14,29,48,.8); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px; padding: 6px 12px; font-size: .92rem; color: var(--mist);
+    font-variant-numeric: tabular-nums; pointer-events: none;
+  }
+  .stats b { color: var(--cream); font-weight: 600; }
+  .note {
+    position: absolute; right: calc(12px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom));
+    max-width: min(420px, calc(100% - 24px));
+    background: rgba(14,29,48,.9); border: 1px solid rgba(201,151,63,.45);
+    border-radius: 10px; padding: 8px 12px; font-size: .92rem; line-height: 1.35; color: var(--mist);
+    transition: opacity .4s; pointer-events: none;
+  }
+  .note strong { color: var(--cream); font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 1rem; }
+  .note.hidden { opacity: 0; }
+  .note.hidden .x { pointer-events: none; }
+  .note .x {
+    pointer-events: auto; float: right; margin: -4px -6px 0 10px;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid rgba(232,211,166,.4); background: rgba(255,255,255,.06);
+    color: var(--cream); font-size: 18px; line-height: 1; cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    .titlebar { padding-right: calc(92px + env(safe-area-inset-right)); gap: 6px 8px; }
+    .titlebar h1 { font-size: 1.25rem; }
+    .about-btn { font-size: .75rem; }
+    .toolbar { gap: 6px; padding-top: 6px; padding-bottom: 6px; justify-content: center; }
+    .group { padding: 3px; gap: 4px; }
+    .toolbar button, .toolbar select { padding: 4px 8px; font-size: .86rem; min-height: 32px; white-space: nowrap; }
+    .toolbar button.primary { min-width: 70px; }
+    .toolbar label { white-space: nowrap; }
+    .toolbar .word { display: none; }
+    .toolbar input[type=range] { width: 72px; }
+    #speedLabel { min-width: 52px; }
+    .settings { gap: 8px; justify-content: center; }
+    .settings label { grid-template-columns: 112px 110px 40px; }
+    .settings input[type=range] { width: 110px; }
+    .band { height: 88px; }
+    .legend { gap: 10px; font-size: .8rem; }
+    .phase { width: 112px; height: 112px; top: 8px; right: 8px; }
+    .note { left: 12px; bottom: calc(50px + env(safe-area-inset-bottom)); font-size: .85rem; }
+    .stats { font-size: .82rem; }
+  }
+
+  /* ---------- About panel ---------- */
+  .about {
+    position: fixed; inset: 0; background: rgba(6,14,24,.6); display: none;
+    align-items: center; justify-content: center; padding: 16px; z-index: 50;
+  }
+  .about.open { display: flex; }
+  .about .sheet {
+    background: var(--paper); color: #1e2a36; border-radius: 14px; max-width: 580px; width: 100%;
+    max-height: calc(100% - 32px); overflow: auto; padding: 22px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .about h2 { font-family: "Fraunces", Georgia, serif; color: var(--navy); margin: 0 0 8px; font-size: 1.5rem; }
+  .about h3 { font-family: "Fraunces", Georgia, serif; color: var(--navy-2); margin: 16px 0 6px; font-size: 1.1rem; }
+  .about p, .about li { line-height: 1.45; color: #34414d; }
+  .about ul { padding-left: 20px; margin: 6px 0; }
+  .about .close { float: right; background: none; border: 0; font-size: 1.6rem; cursor: pointer; color: var(--navy); line-height: 1; }
+
+  /* Home button (captcraig.net) — same as the other Workshop pages */
+  #cc-home{position:absolute;top:calc(12px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
+  z-index:9999;padding:5px 12px;border-radius:999px;font:600 14px/1.2 system-ui,-apple-system,sans-serif;
+  text-decoration:none;color:#14273e;background:rgba(255,255,255,.6);border:1px solid rgba(20,39,62,.3);
+  opacity:.8;transition:opacity .15s,background .15s}
+  #cc-home:hover,#cc-home:focus-visible{opacity:1;background:#fff}
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <h1>Predator <span>&amp;</span> Prey</h1>
+  <button class="about-btn" id="aboutBtn">What is this?</button>
+</div>
+
+<div class="toolbar">
+  <div class="group">
+    <button id="runBtn" class="primary on">❚❚ Pause</button>
+    <button id="restartBtn" title="Start again with the current settings">⟲ Restart</button>
+    <label><span class="word">Speed</span> <input id="speed" type="range" min="0" max="6" value="2"><span id="speedLabel"></span></label>
+  </div>
+  <div class="group">
+    <select id="preset" aria-label="Scenario">
+      <option value="balanced">Balanced</option>
+      <option value="boom">Feast and famine</option>
+      <option value="foxes">Too many foxes</option>
+      <option value="alone">Rabbits alone</option>
+    </select>
+  </div>
+  <div class="group" role="group" aria-label="Add animals">
+    <button data-drop="rabbit" title="Then tap the field to add a few rabbits"><span class="dot"></span> + Rabbits</button>
+    <button data-drop="fox" title="Then tap the field to add a pair of foxes"><span class="tri"></span> + Foxes</button>
+  </div>
+  <div class="group">
+    <button id="setBtn" aria-expanded="false">⚙ Settings</button>
+  </div>
+</div>
+
+<div class="settings" id="settings">
+  <label>Starting rabbits <input id="sRabbits" type="range" min="0" max="900" step="10"><output id="oRabbits"></output></label>
+  <label>Starting foxes <input id="sFoxes" type="range" min="0" max="250" step="2"><output id="oFoxes"></output></label>
+  <label>Grass regrowth <input id="sGrass" type="range" min="20" max="160" step="5"><output id="oGrass"></output></label>
+  <label>Fox appetite <input id="sHunger" type="range" min="35" max="80" step="1"><output id="oHunger"></output></label>
+  <div class="hint">Starting numbers take effect when you press Restart. Grass and appetite change right away. Grass regrowth is how many days a grazed patch takes to grow back.</div>
+</div>
+
+<div class="band">
+  <canvas id="chart"></canvas>
+  <div class="legend">
+    <span class="g"><i style="background:#6f9f4c"></i>Grass <b id="lg"></b></span>
+    <span class="r"><i style="background:#efe2c4"></i>Rabbits <b id="lr"></b></span>
+    <span class="f"><i style="background:#e0703a"></i>Foxes <b id="lf"></b></span>
+  </div>
+</div>
+
+<div class="stage" id="stage">
+  <canvas id="field"></canvas>
+  <div class="phase"><canvas id="phase"></canvas></div>
+  <div class="stats" id="stats"></div>
+  <div class="note hidden" id="note"></div>
+</div>
+
+<div class="about" id="about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+  <div class="sheet">
+    <button class="close" id="aboutClose" aria-label="Close">×</button>
+    <h2 id="aboutTitle">Predator &amp; Prey</h2>
+    <p>For about two centuries, the Hudson's Bay Company kept records of the furs trappers brought in from northern Canada. Ecologists later noticed that the numbers of snowshoe hare and lynx pelts rose and fell in a cycle of about ten years. Hares boomed, then the lynx that ate them boomed, then the hares crashed, then the lynx starved, and around it went.</p>
+    <p>In the 1920s, Alfred Lotka and Vito Volterra, working separately, wrote down a pair of simple equations that produce exactly that kind of endless chase. It's one of the classic ideas of mathematical biology.</p>
+    <h3>What's happening on the field</h3>
+    <ul>
+      <li><b>Grass</b> is eaten down to bare earth and slowly grows back.</li>
+      <li><b>Rabbits</b> wander and graze. A well-fed rabbit has babies; a hungry one starves. They run from foxes they can see.</li>
+      <li><b>Foxes</b> chase rabbits they can see. A good meal lets them raise cubs; a fox that can't catch anything starves.</li>
+    </ul>
+    <p>Nobody tells the populations to rise and fall. Watch the chart at the top: rabbits peak, foxes peak a little later, then both crash. The little square in the corner plots rabbits against foxes, and the cycle traces out a loop.</p>
+    <h3>Things to try</h3>
+    <ul>
+      <li><b>Scenarios</b>: "Rabbits alone" shows that grass alone sets a limit on rabbits. "Too many foxes" shows predators crashing first. "Feast and famine" gives the wildest swings.</li>
+      <li><b>+ Rabbits / + Foxes</b>: switch one on, then tap the field to drop animals in. Tap the button again to stop.</li>
+      <li><b>Settings</b>: change the starting numbers, how fast grass grows back, and how hungry foxes get.</li>
+    </ul>
+    <p>If a species ever dies out completely, a few newcomers wander in from outside the field after a while, just as real animals would, and a note tells you so.</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+// Predator & Prey engine: grass patches, rabbits and foxes on a wrapping field.
+// Same code runs in the page and in node (for tuning).
+function makeSim(opts) {
+  const P = Object.assign({
+    W: 96, H: 60,             // field size in grass patches
+    rabbits: 300, foxes: 30,
+    regrow: 1 / 70,           // grass grows back this much per tick (0..1)
+    rSpeed: 0.45, fSpeed: 0.6,
+    rGain: 4, rCost: 0.5, rBreedE: 14, rBreedP: 0.06, rMaxAge: 400,
+    fGain: 10, fCost: 0.55, fBreedE: 26, fBreedP: 0.05, fMaxAge: 500,
+    fSight: 3, rFear: 3,      // how far a fox sees a rabbit, and a rabbit sees a fox
+    immigrate: true,          // if a species dies out, a few newcomers wander in
+    catchR: 0.7,
+    maxR: 6000, maxF: 1500,
+    seed: 1,
+  }, opts || {});
+  const W = P.W, H = P.H, N = W * H;
+  let s = P.seed >>> 0 || 1;
+  const rand = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+
+  const grass = new Float32Array(N);
+  for (let i = 0; i < N; i++) grass[i] = rand() < 0.5 ? 1 : rand();
+  const R = [], F = [];
+  const spawn = (list, n, gain) => { for (let i = 0; i < n; i++) list.push({ x: rand() * W, y: rand() * H, a: rand() * 6.283, e: gain * (0.5 + rand()), age: (rand() * 100) | 0 }); };
+  spawn(R, P.rabbits, P.rGain * 2); spawn(F, P.foxes, P.fGain);
+
+  const wrapX = x => (x < 0 ? x + W : x >= W ? x - W : x);
+  const wrapY = y => (y < 0 ? y + H : y >= H ? y - H : y);
+  const dwrap = (d, L) => (d > L / 2 ? d - L : d < -L / 2 ? d + L : d);
+
+  // spatial buckets (cell size 4) for "who is near me" questions
+  const BS = 4, BW = Math.ceil(W / BS), BH = Math.ceil(H / BS);
+  let buckets = Array.from({ length: BW * BH }, () => []);
+  function bucketRabbits() {
+    for (const b of buckets) b.length = 0;
+    for (const r of R) buckets[((r.y / BS) | 0) % BH * BW + ((r.x / BS) | 0) % BW].push(r);
+  }
+  function nearest(list, x, y, rad, filterBuckets) {
+    let best = null, bd = rad * rad;
+    if (filterBuckets) {
+      const bx = (x / BS) | 0, by = (y / BS) | 0, k = Math.ceil(rad / BS);
+      for (let j = -k; j <= k; j++) for (let i = -k; i <= k; i++) {
+        const b = buckets[((by + j + BH) % BH) * BW + ((bx + i + BW) % BW)];
+        for (const o of b) { if (o.dead) continue; const dx = dwrap(o.x - x, W), dy = dwrap(o.y - y, H), d = dx * dx + dy * dy; if (d < bd) { bd = d; best = o; } }
+      }
+    } else {
+      for (const o of list) { const dx = dwrap(o.x - x, W), dy = dwrap(o.y - y, H), d = dx * dx + dy * dy; if (d < bd) { bd = d; best = o; } }
+    }
+    return best;
+  }
+  function steer(c, tx, ty, away) {
+    let want = Math.atan2(dwrap(ty - c.y, H), dwrap(tx - c.x, W)); if (away) want += Math.PI;
+    let d = want - c.a; while (d > Math.PI) d -= 6.283; while (d < -Math.PI) d += 6.283;
+    c.a += Math.max(-0.6, Math.min(0.6, d));
+  }
+
+  // fox buckets for rabbits' fear (rebuilt each tick, foxes are few)
+  let foxBuckets = Array.from({ length: BW * BH }, () => []);
+  function nearFox(x, y, rad) {
+    let best = null, bd = rad * rad; const bx = (x / BS) | 0, by = (y / BS) | 0, k = Math.ceil(rad / BS);
+    for (let j = -k; j <= k; j++) for (let i = -k; i <= k; i++) for (const o of foxBuckets[((by + j + BH) % BH) * BW + ((bx + i + BW) % BW)]) {
+      const dx = dwrap(o.x - x, W), dy = dwrap(o.y - y, H), d = dx * dx + dy * dy; if (d < bd) { bd = d; best = o; }
+    }
+    return best;
+  }
+
+  let tick = 0, hadR = false, hadF = false, goneR = 0, goneF = 0;
+  const events = [];
+  function add(kind, x, y, n) {
+    const list = kind === 'fox' ? F : R, gain = kind === 'fox' ? P.fGain : P.rGain * 2;
+    for (let i = 0; i < n; i++) list.push({ x: wrapX(x + (rand() - 0.5) * 3), y: wrapY(y + (rand() - 0.5) * 3), a: rand() * 6.283, e: gain * (0.8 + rand() * 0.4), age: 0 });
+  }
+  function step() {
+    tick++;
+    // newcomers: only for a species that was here and died out, and only after a while
+    if (R.length) { hadR = true; goneR = 0; } else if (hadR) goneR++;
+    if (F.length) { hadF = true; goneF = 0; } else if (hadF) goneF++;
+    if (P.immigrate) {
+      if (goneR > 40) { add('rabbit', rand() * W, 0, 8); events.push('rabbits'); goneR = 0; }
+      if (goneF > 60 && R.length > 60) { add('fox', rand() * W, 0, 3); events.push('foxes'); goneF = 0; }
+    }
+    for (let i = 0; i < N; i++) if (grass[i] < 1) grass[i] = Math.min(1, grass[i] + P.regrow);
+    for (const b of foxBuckets) b.length = 0;
+    for (const f of F) foxBuckets[((f.y / BS) | 0) % BH * BW + ((f.x / BS) | 0) % BW].push(f);
+
+    // rabbits: wander, flee foxes, graze, breed, die
+    const bornR = [];
+    for (const r of R) {
+      const f = P.rFear > 0 ? nearFox(r.x, r.y, P.rFear) : null;
+      if (f) steer(r, f.x, f.y, true); else r.a += (rand() - 0.5) * 1.2;
+      r.x = wrapX(r.x + Math.cos(r.a) * P.rSpeed); r.y = wrapY(r.y + Math.sin(r.a) * P.rSpeed);
+      const gi = ((r.y | 0) % H) * W + ((r.x | 0) % W);
+      if (grass[gi] >= 0.999) { grass[gi] = 0; r.e += P.rGain; }
+      r.e -= P.rCost; r.age++;
+      if (r.e <= 0 || r.age > P.rMaxAge) { r.dead = true; continue; }
+      if (r.e > P.rBreedE && rand() < P.rBreedP && R.length + bornR.length < P.maxR) {
+        r.e /= 2; bornR.push({ x: r.x, y: r.y, a: rand() * 6.283, e: r.e, age: 0 });
+      }
+    }
+    bucketRabbits();
+
+    // foxes: hunt the nearest rabbit in sight, otherwise wander; eat, breed, die
+    const bornF = [];
+    for (const f of F) {
+      const r = nearest(R, f.x, f.y, P.fSight, true);
+      if (r) steer(f, r.x, r.y, false); else f.a += (rand() - 0.5) * 1.0;
+      f.x = wrapX(f.x + Math.cos(f.a) * P.fSpeed); f.y = wrapY(f.y + Math.sin(f.a) * P.fSpeed);
+      if (r && !r.dead) {
+        const dx = dwrap(r.x - f.x, W), dy = dwrap(r.y - f.y, H);
+        if (dx * dx + dy * dy < P.catchR * P.catchR) { r.dead = true; f.e += P.fGain; }
+      }
+      f.e -= P.fCost; f.age++;
+      if (f.e <= 0 || f.age > P.fMaxAge) { f.dead = true; continue; }
+      if (f.e > P.fBreedE && rand() < P.fBreedP && F.length + bornF.length < P.maxF) {
+        f.e /= 2; bornF.push({ x: f.x, y: f.y, a: rand() * 6.283, e: f.e, age: 0 });
+      }
+    }
+    let j = 0; for (const r of R) if (!r.dead) R[j++] = r; R.length = j; for (const b of bornR) R.push(b);
+    j = 0; for (const f of F) if (!f.dead) F[j++] = f; F.length = j; for (const b of bornF) F.push(b);
+  }
+  function grassTotal() { let g = 0; for (let i = 0; i < N; i++) g += grass[i] >= 0.999 ? 1 : 0; return g; }
+  return { P, W, H, grass, R, F, step, add, events, grassTotal, get tick() { return tick; } };
+}
+
+/* =====================================================================
+   Page
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const TOUCH = window.matchMedia && matchMedia('(hover: none)').matches;
+
+const PRESETS = {
+  balanced: { rabbits: 300, foxes: 30,  regrowDays: 70, hunger: 55, note: ['Balanced', 'Rabbits boom, foxes follow, both crash, and around it goes. Watch the chart and the loop in the corner.'] },
+  boom:     { rabbits: 150, foxes: 4,   regrowDays: 45, hunger: 55, note: ['Feast and famine', 'Lush grass and only a few foxes: rabbits explode, then the foxes catch up. The wildest swings of all.'] },
+  foxes:    { rabbits: 300, foxes: 180, regrowDays: 70, hunger: 55, note: ['Too many foxes', 'Far more foxes than the rabbits can feed. Watch who crashes first.'] },
+  alone:    { rabbits: 300, foxes: 0,   regrowDays: 70, hunger: 55, note: ['Rabbits alone', 'No foxes at all. The rabbits level off at the number the grass can feed. Try adding a pair of foxes!'], noImmigrantFoxes: true },
+};
+const SPEEDS = [4, 8, 15, 25, 40, 70, 120];       // days per second
+let speedIdx = 2, running = true, sim, preset = PRESETS.balanced, presetKey = 'balanced';
+let dropKind = null;
+
+/* ---------- settings (sliders) */
+const S = { rabbits: $('sRabbits'), foxes: $('sFoxes'), grass: $('sGrass'), hunger: $('sHunger') };
+function showSettings() {
+  $('oRabbits').textContent = S.rabbits.value;
+  $('oFoxes').textContent = S.foxes.value;
+  $('oGrass').textContent = S.grass.value + ' d';
+  $('oHunger').textContent = S.hunger.value;
+}
+function applyPresetToSliders(p) {
+  S.rabbits.value = p.rabbits; S.foxes.value = p.foxes; S.grass.value = p.regrowDays; S.hunger.value = p.hunger;
+  showSettings();
+}
+function liveParams() { return { regrow: 1 / +S.grass.value, fCost: +S.hunger.value / 100 }; }
+for (const el of [S.grass, S.hunger]) el.addEventListener('input', () => { showSettings(); Object.assign(sim.P, liveParams()); });
+for (const el of [S.rabbits, S.foxes]) el.addEventListener('input', showSettings);
+
+/* ---------- canvases */
+const field = $('field'), fctx = field.getContext('2d');
+const chart = $('chart'), cctx = chart.getContext('2d');
+const phase = $('phase'), pctx = phase.getContext('2d');
+const stage = $('stage');
+let FW = 0, FH = 0, dpr = 1;
+const grassCanvas = document.createElement('canvas'), gctx = grassCanvas.getContext('2d');
+let grassImg = null;
+
+function sizeCanvas(c, ctx) {
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [w, h];
+}
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  [FW, FH] = sizeCanvas(field, fctx);
+  sizeCanvas(chart, cctx);
+  sizeCanvas(phase, pctx);
+}
+
+/* ---------- start / restart */
+const HIST = 1600;                         // days of history kept for the chart and the loop
+let hist = [];
+const PATCHES = 5760;                     // the tuning holds for any field shape with this many grass patches
+function restart() {
+  resize();
+  // shape the field to fill the space it has: wide on a computer, tall on a phone
+  const asp = Math.min(2.5, Math.max(0.4, (FW || 1) / (FH || 1)));
+  const W = Math.round(Math.sqrt(PATCHES * asp)), H = Math.round(PATCHES / W);
+  sim = makeSim(Object.assign({
+    W, H,
+    rabbits: +S.rabbits.value, foxes: +S.foxes.value,
+    seed: (Math.random() * 1e9) | 1,
+  }, liveParams()));
+  sim.noImmigrantFoxes = !!preset.noImmigrantFoxes;
+  grassCanvas.width = sim.W; grassCanvas.height = sim.H;
+  grassImg = gctx.createImageData(sim.W, sim.H);
+  hist = [];
+  record();
+}
+function record() {
+  hist.push([sim.grassTotal() / (sim.W * sim.H), sim.R.length, sim.F.length]);
+  if (hist.length > HIST) hist.shift();
+}
+
+/* ---------- drawing the field */
+let view = { s: 1, ox: 0, oy: 0 };       // patch -> screen
+function drawField() {
+  const W = sim.W, H = sim.H;
+  const s = Math.min(FW / W, FH / H);
+  view = { s, ox: (FW - W * s) / 2, oy: (FH - H * s) / 2 };
+  // grass: one pixel per patch, scaled up smoothly into a soft meadow
+  const d = grassImg.data, g = sim.grass;
+  for (let i = 0; i < W * H; i++) {
+    const v = g[i];                                   // 0 bare earth .. 1 full grass
+    d[i * 4]     = 92 + (66 - 92) * v;                // earth #5c4a36 -> grass #42733a
+    d[i * 4 + 1] = 74 + (115 - 74) * v + (v >= 0.999 ? 12 : 0);
+    d[i * 4 + 2] = 54 + (58 - 54) * v;
+    d[i * 4 + 3] = 255;
+  }
+  gctx.putImageData(grassImg, 0, 0);
+  fctx.fillStyle = '#0e1d30'; fctx.fillRect(0, 0, FW, FH);
+  fctx.imageSmoothingEnabled = true;
+  fctx.drawImage(grassCanvas, view.ox, view.oy, W * s, H * s);
+  fctx.save();
+  fctx.beginPath(); fctx.rect(view.ox, view.oy, W * s, H * s); fctx.clip();
+  // rabbits: soft cream dots
+  const rr = Math.max(1.6, s * 0.42);
+  fctx.fillStyle = '#efe2c4';
+  fctx.beginPath();
+  for (const r of sim.R) {
+    const x = view.ox + r.x * s, y = view.oy + r.y * s;
+    fctx.moveTo(x + rr, y); fctx.arc(x, y, rr, 0, 6.283);
+  }
+  fctx.fill();
+  // foxes: rust arrowheads, pointing the way they're going
+  const fl = Math.max(4, s * 1.25), fw = fl * 0.55;
+  fctx.fillStyle = '#e0703a'; fctx.strokeStyle = 'rgba(40,20,10,.55)'; fctx.lineWidth = 1;
+  fctx.beginPath();
+  for (const f of sim.F) {
+    const x = view.ox + f.x * s, y = view.oy + f.y * s, c = Math.cos(f.a), sn = Math.sin(f.a);
+    fctx.moveTo(x + c * fl * 0.6, y + sn * fl * 0.6);
+    fctx.lineTo(x - c * fl * 0.4 - sn * fw * 0.5, y - sn * fl * 0.4 + c * fw * 0.5);
+    fctx.lineTo(x - c * fl * 0.2, y - sn * fl * 0.2);
+    fctx.lineTo(x - c * fl * 0.4 + sn * fw * 0.5, y - sn * fl * 0.4 - c * fw * 0.5);
+    fctx.closePath();
+  }
+  fctx.fill(); fctx.stroke();
+  fctx.restore();
+}
+
+/* ---------- the chart band: populations over time */
+function drawChart() {
+  const w = chart.clientWidth, h = chart.clientHeight;
+  cctx.fillStyle = '#0b1828'; cctx.fillRect(0, 0, w, h);
+  if (!hist.length) return;
+  const top = 26, bot = h - 6, ph = bot - top;
+  const n = hist.length, dx = w / (HIST - 1), x0 = w - (n - 1) * dx;
+  let maxA = 50; for (const [, r, f] of hist) maxA = Math.max(maxA, r, f);
+  maxA = Math.ceil(maxA / 100) * 100;
+  // faint guide lines
+  cctx.strokeStyle = 'rgba(255,255,255,.06)'; cctx.lineWidth = 1; cctx.beginPath();
+  for (let k = 1; k <= 3; k++) { const y = Math.round(bot - ph * k / 4) + .5; cctx.moveTo(0, y); cctx.lineTo(w, y); }
+  cctx.stroke();
+  cctx.fillStyle = 'rgba(200,212,224,.55)'; cctx.font = '11px "Source Sans 3", system-ui, sans-serif'; cctx.textAlign = 'right';
+  cctx.fillText(maxA, w - 6, top + 10);
+  // grass: shaded area (share of the field that is fully grown)
+  cctx.beginPath(); cctx.moveTo(x0, bot);
+  for (let i = 0; i < n; i++) cctx.lineTo(x0 + i * dx, bot - hist[i][0] * ph);
+  cctx.lineTo(x0 + (n - 1) * dx, bot); cctx.closePath();
+  cctx.fillStyle = 'rgba(111,159,76,.28)'; cctx.fill();
+  // rabbits and foxes: lines on the same count scale
+  const line = (k, col, wid) => {
+    cctx.beginPath();
+    for (let i = 0; i < n; i++) { const x = x0 + i * dx, y = bot - hist[i][k] / maxA * ph; i ? cctx.lineTo(x, y) : cctx.moveTo(x, y); }
+    cctx.strokeStyle = col; cctx.lineWidth = wid; cctx.lineJoin = 'round'; cctx.stroke();
+  };
+  line(1, '#efe2c4', 2); line(2, '#e0703a', 2.2);
+  const [g, r, f] = hist[n - 1];
+  $('lg').textContent = Math.round(g * 100) + '%'; $('lr').textContent = r; $('lf').textContent = f;
+}
+
+/* ---------- the loop: rabbits (across) vs foxes (up) */
+function drawPhase() {
+  const w = phase.clientWidth, h = phase.clientHeight, pad = 14;
+  pctx.clearRect(0, 0, w, h);
+  pctx.fillStyle = 'rgba(200,212,224,.7)'; pctx.font = '600 10px "Source Sans 3", system-ui, sans-serif';
+  pctx.textAlign = 'left'; pctx.fillText('foxes ↑', 6, 12);
+  pctx.textAlign = 'right'; pctx.fillText('rabbits →', w - 6, h - 5);
+  if (hist.length < 2) return;
+  let mr = 50, mf = 20; for (const [, r, f] of hist) { mr = Math.max(mr, r); mf = Math.max(mf, f); }
+  const X = r => pad + r / mr * (w - 2 * pad), Y = f => h - pad - f / mf * (h - 2 * pad);
+  const n = hist.length;
+  for (let i = 1; i < n; i++) {                      // older parts of the trail fade out
+    const a = 0.08 + 0.75 * (i / n);
+    pctx.strokeStyle = `rgba(232,211,166,${a.toFixed(3)})`; pctx.lineWidth = 1.3;
+    pctx.beginPath(); pctx.moveTo(X(hist[i - 1][1]), Y(hist[i - 1][2])); pctx.lineTo(X(hist[i][1]), Y(hist[i][2])); pctx.stroke();
+  }
+  const [, r, f] = hist[n - 1];
+  pctx.fillStyle = '#e0703a'; pctx.beginPath(); pctx.arc(X(r), Y(f), 3.5, 0, 6.283); pctx.fill();
+}
+
+/* ---------- notes */
+const noteEl = $('note'); let noteTimer = 0;
+function hideNote() { clearTimeout(noteTimer); noteEl.classList.add('hidden'); }
+function showNote(title, text, ms = 7000) {
+  noteEl.innerHTML = '<button class="x" aria-label="Close">×</button>' + (title ? `<strong>${title}</strong><br>` : '') + text;
+  noteEl.querySelector('.x').onclick = hideNote;
+  noteEl.classList.remove('hidden');
+  clearTimeout(noteTimer); if (ms) noteTimer = setTimeout(hideNote, ms);
+}
+
+/* ---------- controls */
+function setRunning(v) { running = v; $('runBtn').textContent = v ? '❚❚ Pause' : '▶ Run'; $('runBtn').classList.toggle('on', v); }
+$('runBtn').onclick = () => setRunning(!running);
+$('restartBtn').onclick = () => { restart(); setRunning(true); };
+function updateSpeed() { $('speedLabel').textContent = SPEEDS[speedIdx] + ' d/s'; }
+$('speed').oninput = e => { speedIdx = +e.target.value; updateSpeed(); };
+$('preset').onchange = e => {
+  presetKey = e.target.value; preset = PRESETS[presetKey];
+  applyPresetToSliders(preset); restart(); setRunning(true);
+  showNote(preset.note[0], preset.note[1], 9000);
+  e.target.blur();
+};
+$('setBtn').onclick = () => {
+  const open = !$('settings').classList.contains('open');
+  $('settings').classList.toggle('open', open); $('setBtn').classList.toggle('on', open);
+  $('setBtn').setAttribute('aria-expanded', open);
+  requestAnimationFrame(resize);
+};
+document.querySelectorAll('[data-drop]').forEach(b => b.onclick = () => {
+  dropKind = dropKind === b.dataset.drop ? null : b.dataset.drop;
+  document.querySelectorAll('[data-drop]').forEach(x => x.classList.toggle('on', x.dataset.drop === dropKind));
+  field.classList.toggle('dropping', !!dropKind);
+  if (dropKind) showNote('', (TOUCH ? 'Tap' : 'Click') + ' the field to drop in ' + (dropKind === 'fox' ? 'a pair of foxes' : 'a few rabbits') + '. Tap the button again to stop.', 5000);
+});
+field.addEventListener('pointerdown', e => {
+  if (!dropKind || !sim) return;
+  const r = field.getBoundingClientRect(), x = (e.clientX - r.left - view.ox) / view.s, y = (e.clientY - r.top - view.oy) / view.s;
+  if (x < 0 || y < 0 || x >= sim.W || y >= sim.H) return;
+  sim.add(dropKind, x, y, dropKind === 'fox' ? 2 : 6);
+  drawField();
+});
+$('aboutBtn').onclick = () => $('about').classList.add('open');
+$('aboutClose').onclick = () => $('about').classList.remove('open');
+$('about').addEventListener('click', e => { if (e.target.id === 'about') $('about').classList.remove('open'); });
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === ' ') { e.preventDefault(); if (!e.repeat) setRunning(!running); }
+  else if (e.key === 'Escape') { $('about').classList.remove('open'); hideNote(); }
+});
+
+/* ---------- main loop */
+let acc = 0, last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.25, (now - last) / 1000); last = now;
+  if (running) {
+    acc += dt * SPEEDS[speedIdx];
+    const t0 = performance.now();
+    while (acc >= 1) {
+      sim.step(); record(); acc -= 1;
+      if (performance.now() - t0 > 24) { acc = 0; break; }   // never let a big population freeze the page
+    }
+    while (sim.events.length) {
+      const ev = sim.events.shift();
+      showNote('Newcomers', ev === 'foxes' ? 'The foxes had all died out, so a pair wandered in from outside the field.' : 'The rabbits had all died out, so a few wandered in from outside the field.', 6000);
+    }
+  } else acc = 0;
+  drawField(); drawChart(); drawPhase();
+  $('stats').innerHTML = `Day <b>${sim.tick.toLocaleString()}</b>`;
+  requestAnimationFrame(frame);
+}
+
+let shapeAt = 0;
+function refitIfYoung() {
+  resize();
+  const asp = (FW || 1) / (FH || 1), simAsp = sim.W / sim.H;
+  if (sim.tick < 40 && Math.abs(Math.log(asp / simAsp)) > 0.25) restart();
+}
+window.addEventListener('resize', () => { clearTimeout(shapeAt); resize(); shapeAt = setTimeout(refitIfYoung, 200); });
+applyPresetToSliders(PRESETS.balanced);
+updateSpeed();
+restart();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitIfYoung);
+setTimeout(refitIfYoung, 300);
+requestAnimationFrame(frame);
+</script>
+
+<!-- Home button (captcraig.net) -->
+<a href="/" id="cc-home" aria-label="Back to home page">⌂ Home</a>
+<!-- Visit counter (GoatCounter: no cookies, no personal data; localhost is not counted) -->
+<script data-goatcounter="https://captcraig.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
